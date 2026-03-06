@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+// ATLAN PATCH: Vite sets import.meta.env.BASE_URL from the `base` config option.
+// When built with VITE_BASE_PATH=/api/capacitor/, BASE_URL = '/api/capacitor/'.
+// Stripping the trailing slash gives the prefix for all API calls.
+// e.g. /api/fluxState → /api/capacitor/api/fluxState
+// Kong then strips /api/capacitor before forwarding to the Go server, which sees /api/fluxState.
+const API_BASE = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+
 export default class CapacitorClient {
   constructor(onError) {
     this.onError = onError
@@ -7,29 +14,29 @@ export default class CapacitorClient {
 
   URL = () => this.url;
 
-  getFluxState = () => this.get('/api/fluxState');
+  getFluxState = () => this.get(`${API_BASE}/api/fluxState`);
 
-  getFluxEvents = () => this.get('/api/fluxEvents');
+  getFluxEvents = () => this.get(`${API_BASE}/api/fluxEvents`);
 
-  getServices = () => this.get('/api/services');
+  getServices = () => this.get(`${API_BASE}/api/services`);
 
-  describeConfigmap = (namespace, name) => this.get(`/api/describeConfigmap?namespace=${namespace}&name=${name}`);
+  describeConfigmap = (namespace, name) => this.get(`${API_BASE}/api/describeConfigmap?namespace=${namespace}&name=${name}`);
 
-  describeSecret = (namespace, name) => this.get(`/api/describeSecret?namespace=${namespace}&name=${name}`);
+  describeSecret = (namespace, name) => this.get(`${API_BASE}/api/describeSecret?namespace=${namespace}&name=${name}`);
 
-  describeDeployment = (namespace, name) => this.get(`/api/describeDeployment?namespace=${namespace}&name=${name}`);
+  describeDeployment = (namespace, name) => this.get(`${API_BASE}/api/describeDeployment?namespace=${namespace}&name=${name}`);
 
-  describePod = (namespace, name) => this.get(`/api/describePod?namespace=${namespace}&name=${name}`);
+  describePod = (namespace, name) => this.get(`${API_BASE}/api/describePod?namespace=${namespace}&name=${name}`);
 
-  podLogsRequest = (namespace, deployment) => this.get(`/api/logs?namespace=${namespace}&deploymentName=${deployment}`);
+  podLogsRequest = (namespace, deployment) => this.get(`${API_BASE}/api/logs?namespace=${namespace}&deploymentName=${deployment}`);
 
-  stopPodLogsRequest = (namespace, deployment) => this.get(`/api/stopLogs?namespace=${namespace}&deploymentName=${deployment}`);
+  stopPodLogsRequest = (namespace, deployment) => this.get(`${API_BASE}/api/stopLogs?namespace=${namespace}&deploymentName=${deployment}`);
 
-  suspend = (resource, namespace, name) => this.post(`/api/suspend?resource=${resource}&namespace=${namespace}&name=${name}`);
+  suspend = (resource, namespace, name) => this.post(`${API_BASE}/api/suspend?resource=${resource}&namespace=${namespace}&name=${name}`);
 
-  resume = (resource, namespace, name) => this.post(`/api/resume?resource=${resource}&namespace=${namespace}&name=${name}`);
+  resume = (resource, namespace, name) => this.post(`${API_BASE}/api/resume?resource=${resource}&namespace=${namespace}&name=${name}`);
 
-  reconcile = (resource, namespace, name) => this.post(`/api/reconcile?resource=${resource}&namespace=${namespace}&name=${name}`);
+  reconcile = (resource, namespace, name) => this.post(`${API_BASE}/api/reconcile?resource=${resource}&namespace=${namespace}&name=${name}`);
 
   get = async (path) => {
     try {
