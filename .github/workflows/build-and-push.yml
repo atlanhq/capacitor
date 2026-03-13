@@ -3,15 +3,15 @@ name: Build and Push Capacitor (Atlan fork)
 on:
   push:
     branches:
-      - atlan/subpath-support
+      - atlan/main
     tags:
       - 'atlan-v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to push (e.g. v0.4.6-subpath)"
+        description: "Image tag to push (e.g. v0.4.9-atlan)"
         required: false
-        default: "v0.4.6-subpath"
+        default: "v0.4.9-atlan"
 
 env:
   REGISTRY: ghcr.io
@@ -29,6 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -48,7 +51,8 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
           else
-            TAG="v0.4.6-subpath"
+            SHA=$(git rev-parse --short HEAD)
+            TAG="atlan-${SHA}"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> $GITHUB_OUTPUT
