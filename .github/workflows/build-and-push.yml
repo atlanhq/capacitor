@@ -4,31 +4,65 @@ on:
   push:
     branches:
       - atlan/main
-    tags:
-      - 'atlan-v*'
+      - atlan/beta
+    paths:
+      - "**"
+      - "!**.md"
+      - "!images/**"
+      - "!**.png"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to push (e.g. v0.4.9-atlan)"
+        description: "Image tag override (leave empty for auto SHA-based tag)"
         required: false
-        default: "v0.4.9-atlan"
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: atlanhq/capacitor
-  VITE_BASE_PATH: /api/capacitor/
+  VITE_BASE_PATH: /api/flux-observability/
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-latest
+            platform: linux/arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      branch: ${{ steps.get_lowercase_branch.outputs.lowercase_branch }}
 
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get branch name
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        id: get_branch
+
+      - name: Get version tag
+        run: echo "version=$(echo $(git rev-parse HEAD | cut -c1-7))abcd" >> $GITHUB_OUTPUT
+        id: get_version
+
+      - name: Lowercase branch name
+        run: |
+          raw="${{ steps.get_branch.outputs.branch }}"
+          # atlan/beta -> atlan-beta, atlan/main -> atlan-main
+          normalized=$(echo "$raw" | tr '/' '-' | tr '[:upper:]' '[:lower:]')
+          echo "lowercase_branch=$normalized" >> $GITHUB_OUTPUT
+        id: get_lowercase_branch
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -41,36 +75,56 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.ORG_PAT_GITHUB }}
 
-      - name: Determine image tag
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
-          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG="${{ github.ref_name }}"
-          else
-            SHA=$(git rev-parse --short HEAD)
-            TAG="atlan-${SHA}"
-          fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> $GITHUB_OUTPUT
-
-      - name: Build and push (amd64 + arm64)
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.atlan
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           build-args: |
             VITE_BASE_PATH=${{ env.VITE_BASE_PATH }}
           tags: |
-            ${{ steps.meta.outputs.image }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/atlanhq/${{ github.event.repository.name }}-${{ steps.get_lowercase_branch.outputs.lowercase_branch }}:${{ steps.get_version.outputs.version }}-${{ matrix.arch }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Print image digest
-        run: echo "Pushed ${{ steps.meta.outputs.image }}"
+  create-manifest:
+    needs: build
+
+    env:
+      version: ${{ needs.build.outputs.version }}
+      branch: ${{ needs.build.outputs.branch }}
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ORG_PAT_GITHUB }}
+
+      - name: Create and Push Manifest List
+        run: |
+          docker buildx imagetools create --tag ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:latest \
+            ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }}-amd64 \
+            ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }}-arm64
+
+          docker buildx imagetools create --tag ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }} \
+            ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }}-amd64 \
+            ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }}-arm64
+
+      - name: Check Image Manifest
+        run: |
+          docker buildx imagetools inspect --raw ghcr.io/atlanhq/${{ github.event.repository.name }}-${{ env.branch }}:${{ env.version }}

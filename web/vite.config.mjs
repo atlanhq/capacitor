@@ -4,7 +4,7 @@ import eslint from 'vite-plugin-eslint'
 
 // https://vitejs.dev/config/
 // ATLAN PATCH: Support sub-path deployment via VITE_BASE_PATH build-time env var.
-// Set VITE_BASE_PATH=/api/capacitor/ when building the Docker image.
+// Set VITE_BASE_PATH=/api/flux-observability/ when building the Docker image.
 // Kong strip-path:true handles stripping the prefix before forwarding to the Go server.
 export default defineConfig({
   build: {
