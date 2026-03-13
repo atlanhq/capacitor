@@ -3,12 +3,14 @@ import { TimeLabel } from './TimeLabel'
 
 export function ArtifactWidget(props) {
   const { gitRepository } = props
-  const artifact = gitRepository.status.artifact
+  const artifact = gitRepository.status?.artifact
+  if (!artifact) return null
 
-  const revision = artifact.revision
+  const revision = artifact.revision || ''
   const hash = revision.slice(revision.indexOf(':') + 1);
-  const url = gitRepository.spec.url.slice(gitRepository.spec.url.indexOf('@') + 1)
-  const branch = gitRepository.spec.ref.branch
+  const repoUrl = gitRepository.spec?.url || ''
+  const url = repoUrl.slice(repoUrl.indexOf('@') + 1)
+  const branch = gitRepository.spec?.ref?.branch
 
   const parsed = Date.parse(artifact.lastUpdateTime, "yyyy-MM-dd'T'HH:mm:ss");
   const exactDate = format(parsed, 'MMMM do yyyy, h:mm:ss a O')

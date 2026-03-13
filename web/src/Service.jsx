@@ -29,8 +29,8 @@ function Service(props) {
   const configMapWidgets = configMaps(service.pods, service.svc.metadata.namespace, capacitorClient)
   const secretWidgets = secrets(service.pods, service.svc.metadata.namespace, capacitorClient)
 
-  const appPort = getAppPort(service.svc.spec.ports) ?? "<app-port>";
-  const hostPort = getHostPort(service.svc.spec.ports) ?? "<host-port>";
+  const appPort = getAppPort(service.svc?.spec?.ports) ?? "<app-port>";
+  const hostPort = getHostPort(service.svc?.spec?.ports) ?? "<host-port>";
 
   return (
     <>
@@ -174,7 +174,7 @@ function Service(props) {
                       </p>
                       ) : null
                     }
-                    {service.svc.spec.ports &&
+                    {service.svc?.spec?.ports &&
                         <>
                           <a href={'http://127.0.0.1:' + hostPort} target="_blank" rel="noopener noreferrer">http://127.0.0.1:{hostPort}
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +275,7 @@ export function Pod(props) {
 
   let color;
   let pulsar;
-  switch (pod.status.phase) {
+  switch (pod.status?.phase) {
     case 'Running':
       color = 'bg-green-200';
       pulsar = '';
@@ -298,15 +298,17 @@ export function Pod(props) {
   }
 
   return (
-    <span className={`inline-block mr-1 mt-2 shadow-lg ${color} ${pulsar} font-bold px-2 cursor-default`} title={`${pod.metadata.name} - ${pod.status.phase}`}>
-      {pod.status.phase}
+    <span className={`inline-block mr-1 mt-2 shadow-lg ${color} ${pulsar} font-bold px-2 cursor-default`} title={`${pod.metadata?.name} - ${pod.status?.phase}`}>
+      {pod.status?.phase}
     </span>
   );
 }
 
 function ingressURL(ingress, service) {
   let url = ""
+  if (!ingress?.spec?.rules) return url;
   ingress.spec.rules.forEach(rule => {
+    if (!rule.http?.paths) return;
     rule.http.paths.forEach(path => {
       if (path.backend.service.name === service.svc.metadata.name) {
         url = rule.host

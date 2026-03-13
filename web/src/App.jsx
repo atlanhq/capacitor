@@ -6,7 +6,6 @@ import { rootReducer } from './redux';
 import Footer from "./Footer";
 import FilterBar from "./FilterBar";
 import Services from "./Services";
-import ToastNotifications from "./ToastNotifications";
 import { useState, useEffect, useCallback } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { fallbackRender } from "./FallbackRender"
@@ -21,7 +20,7 @@ function App() {
   const store = createStore(rootReducer);
   const [filters, setFilters] = useState(JSON.parse(localStorage.getItem("filters")) ?? [])
   const [expanded, setExpanded] = useState(false);
-  const [selected, setSelected] = useState('Kustomizations');
+  const [selected, setSelected] = useState('Helm Releases');
   const [targetReference, setTargetReference] = useState("")
 
   const handleNavigationSelect = useCallback((selectedNav, objectNs, objectName, objectKind) => {
@@ -44,7 +43,6 @@ function App() {
     <>
     <APIBackend capacitorClient={capacitorClient} store={store}/>
     <StreamingBackend capacitorClient={capacitorClient} store={store}/>
-    <ToastNotifications store={store} handleNavigationSelect={handleNavigationSelect} />
     <div className="max-w-6xl mx-auto">
       <div className="my-16">
         <FilterBar

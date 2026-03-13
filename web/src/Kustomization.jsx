@@ -57,14 +57,14 @@ export function Kustomization(props) {
           />
           </ErrorBoundary>
         </div>
-        { source.kind !== 'OCIRepository' &&
-        <span className='font-mono rounded text-neutral-600 bg-gray-100 px-1'>{item.spec.path}</span>
+        { source?.kind !== 'OCIRepository' &&
+        <span className='font-mono rounded text-neutral-600 bg-gray-100 px-1'>{item.spec?.path}</span>
         }
       </div>
       <div className="grid grid-cols-1 text-right space-y-1">
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => {
-            if (item.spec.suspend) {
+            if (item.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
               confirm(`Are you sure you want to resume ${item.metadata.name}?`) && capacitorClient.resume("kustomization", item.metadata.namespace, item.metadata.name);
             } else {
@@ -73,7 +73,7 @@ export function Kustomization(props) {
             }
           }}
         >
-          {item.spec.suspend ? "Resume" : "Suspend"}
+          {item.spec?.suspend ? "Resume" : "Suspend"}
         </button>
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => capacitorClient.reconcile("kustomization", item.metadata.namespace, item.metadata.name)}
@@ -88,13 +88,13 @@ export function Kustomization(props) {
 export function RevisionWidget(props) {
   const { kustomization, source, handleNavigationSelect, inFooter } = props
 
-  const appliedRevision = kustomization.status.lastAppliedRevision
+  const appliedRevision = kustomization.status?.lastAppliedRevision
   const appliedHash = appliedRevision ? appliedRevision.slice(appliedRevision.indexOf(':') + 1) : "";
 
-  const lastAttemptedRevision = kustomization.status.lastAttemptedRevision
+  const lastAttemptedRevision = kustomization.status?.lastAttemptedRevision
   const lastAttemptedHash = lastAttemptedRevision ? lastAttemptedRevision.slice(lastAttemptedRevision.indexOf(':') + 1) : "";
 
-  const readyConditions = jp.query(kustomization.status, '$..conditions[?(@.type=="Ready")]');
+  const readyConditions = jp.query(kustomization.status || {}, '$..conditions[?(@.type=="Ready")]');
   const readyCondition = readyConditions.length === 1 ? readyConditions[0] : undefined
   const ready = readyCondition && readyConditions[0].status === "True"
 
@@ -108,10 +108,11 @@ export function RevisionWidget(props) {
   // const reconcilingCondition = reconcilingConditions.length === 1 ? reconcilingConditions[0] : undefined
   // const reconciling = reconcilingCondition && reconcilingConditions[0].status === "True"
 
-  const url = source.spec.url.slice(source.spec.url.indexOf('@') + 1).replace(/https?:\/\//g, '').replace(/\.git/g, '')
+  const sourceUrl = source?.spec?.url || ''
+  const url = sourceUrl.slice(sourceUrl.indexOf('@') + 1).replace(/https?:\/\//g, '').replace(/\.git/g, '')
 
   const navigationHandler = inFooter ?
-    () => handleNavigationSelect("Sources", source.metadata.namespace, source.metadata.name, source.kind) :
+    () => handleNavigationSelect("Sources", source?.metadata?.namespace, source?.metadata?.name, source?.kind) :
     () => handleNavigationSelect("Kustomizations", kustomization.metadata.namespace, kustomization.metadata.name)
 
   return (
@@ -126,7 +127,7 @@ export function RevisionWidget(props) {
           </a>
         </span>
         <NavigationButton handleNavigation={navigationHandler}>
-          &nbsp;({`${source.metadata.namespace}/${source.metadata.name}`})
+          &nbsp;({`${source?.metadata?.namespace}/${source?.metadata?.name}`})
         </NavigationButton>
       </span>
     }
@@ -134,13 +135,13 @@ export function RevisionWidget(props) {
       { !ready &&
       <span>Currently Applied: </span>
       }
-      { source.kind === 'OCIRepository' &&
+      { source?.kind === 'OCIRepository' &&
       <NavigationButton handleNavigation={navigationHandler}>
        {appliedRevision}
-       <div className='text-left'>({`${source.metadata.namespace}/${source.metadata.name}`})</div>
+       <div className='text-left'>({`${source?.metadata?.namespace}/${source?.metadata?.name}`})</div>
       </NavigationButton>
       }
-      { source.kind !== 'OCIRepository' &&
+      { source?.kind !== 'OCIRepository' &&
       <>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" className="h4 w-4 inline fill-current"><path d="M320 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160zm156.8-48C462 361 397.4 416 320 416s-142-55-156.8-128H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H163.2C178 151 242.6 96 320 96s142 55 156.8 128H608c17.7 0 32 14.3 32 32s-14.3 32-32 32H476.8z"/></svg>
         <span className="pl-1">
@@ -149,7 +150,7 @@ export function RevisionWidget(props) {
           </a>
         </span>
         <NavigationButton handleNavigation={navigationHandler}>
-          &nbsp;({`${source.metadata.namespace}/${source.metadata.name}`})
+          &nbsp;({`${source?.metadata?.namespace}/${source?.metadata?.name}`})
         </NavigationButton>
       </>
       }

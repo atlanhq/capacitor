@@ -1,12 +1,12 @@
 package flux
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	tf "github.com/flux-iac/tofu-controller/api/v1alpha2"
 	helmv2beta2 "github.com/fluxcd/helm-controller/api/v2beta2"
@@ -14,11 +14,6 @@ import (
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/gimlet-io/capacitor/pkg/k8s"
-	"github.com/sirupsen/logrus"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/kube"
-	rspb "helm.sh/helm/v3/pkg/release"
 	apps_v1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking_v1 "k8s.io/api/networking/v1"
@@ -111,65 +106,31 @@ var (
 	}
 )
 
-func helmServices(dc *dynamic.DynamicClient) ([]Service, error) {
-	helmReleases, err := helmReleases(dc)
+// timeoutCtx returns a context with a 30-second timeout so Kubernetes API
+// calls don't block HTTP handlers indefinitely if the API server is slow.
+func timeoutCtx() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	return ctx
+}
+
+// helmServices returns all Services that are managed by a Flux HelmRelease.
+// Flux (helm-controller) labels every resource it deploys with
+// "helm.toolkit.fluxcd.io/name=<releaseName>", so a single label-selector
+// query replaces the previous Helm SDK approach that read every release secret
+// and parsed manifests (O(n) per release, ~20-30 s for 85 releases).
+func helmServices(c *kubernetes.Clientset) ([]Service, error) {
+	svcList, err := c.CoreV1().Services("").List(timeoutCtx(), metav1.ListOptions{
+		LabelSelector: "helm.toolkit.fluxcd.io/name",
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	services := []Service{}
-
-	actionConfig := action.Configuration{}
-	actionConfig.Init(cli.New().RESTClientGetter(), "", "", nil)
-	releases, err := actionConfig.Releases.ListReleases()
-	if err != nil {
-		return nil, err
+	for _, svc := range svcList.Items {
+		s := svc
+		services = append(services, Service{Svc: s})
 	}
-
-	serviceResourceList := kube.ResourceList{}
-	for _, release := range helmReleases {
-		serviceList, err := helmStatusWithResources(releases, release)
-		if err != nil {
-			logrus.Warnf("could not get helm status for %s: %s", release.Spec.ReleaseName, err.Error())
-			continue
-		}
-
-		for _, i := range serviceList {
-			serviceResourceList.Append(i)
-		}
-	}
-
-	kubeClient, ok := actionConfig.KubeClient.(kube.InterfaceResources)
-	if !ok {
-		return nil, fmt.Errorf("unable to get kubeClient with interface InterfaceResources")
-	}
-
-	resources, err := kubeClient.Get(serviceResourceList, false)
-	if err != nil {
-		return nil, err
-	}
-
-	if objs, found := resources["v1/Service"]; found {
-		svc := v1.Service{}
-		for _, obj := range objs {
-			unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-			if err != nil {
-				logrus.Warnf("could not convert to unstructured: %s", err.Error())
-				continue
-			}
-
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, &svc)
-			if err != nil {
-				logrus.Warnf("could not convert from unstructured: %s", err.Error())
-				continue
-			}
-
-			services = append(services, Service{
-				Svc: svc,
-			})
-		}
-	}
-
 	return services, nil
 }
 
@@ -181,49 +142,45 @@ func Services(c *kubernetes.Clientset, dc *dynamic.DynamicClient) ([]Service, er
 		return nil, err
 	}
 
-	servicesInNamespaces := map[string][]v1.Service{}
+	// Fetch ALL services in one cross-namespace call to avoid per-namespace lookups.
+	allServicesForInventory, err := c.CoreV1().Services("").List(timeoutCtx(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	svcByKey := map[string]v1.Service{}
+	for _, svc := range allServicesForInventory.Items {
+		svcByKey[svc.Namespace+"/"+svc.Name] = svc
+	}
+
 	for _, item := range inventory {
 		if item.GroupKind.Kind == "Service" {
-			if _, ok := servicesInNamespaces[item.Namespace]; !ok {
-				services, err := c.CoreV1().Services(item.Namespace).List(context.TODO(), metav1.ListOptions{})
-				if err != nil {
-					return nil, err
-				}
-				servicesInNamespaces[item.Namespace] = services.Items
-			}
-
-			for _, svc := range servicesInNamespaces[item.Namespace] {
-				if svc.ObjectMeta.Namespace == item.Namespace &&
-					svc.ObjectMeta.Name == item.Name {
-					services = append(services, Service{
-						Svc: svc,
-					})
-				}
+			if svc, ok := svcByKey[item.Namespace+"/"+item.Name]; ok {
+				services = append(services, Service{Svc: svc})
 			}
 		}
 	}
 
-	helmServices, err := helmServices(dc)
+	helmSvcs, err := helmServices(c)
 	if err != nil {
 		return nil, err
 	}
 
-	services = append(services, helmServices...)
+	services = append(services, helmSvcs...)
 
-	deploymentsInNamespaces := map[string][]apps_v1.Deployment{}
-	for _, service := range services {
-		namespace := service.Svc.Namespace
-		if _, ok := deploymentsInNamespaces[namespace]; !ok {
-			deployments, err := c.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
-			if err != nil {
-				return nil, err
-			}
-			deploymentsInNamespaces[namespace] = deployments.Items
-		}
+	// Fetch ALL deployments in one cross-namespace call and group by namespace
+	// in memory — avoids O(n) per-namespace API calls when services are spread
+	// across many namespaces (e.g. 83 services × 83 namespaces = 83 round-trips).
+	allDeployments, err := c.AppsV1().Deployments("").List(timeoutCtx(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	deploymentsByNamespace := map[string][]apps_v1.Deployment{}
+	for _, d := range allDeployments.Items {
+		deploymentsByNamespace[d.Namespace] = append(deploymentsByNamespace[d.Namespace], d)
 	}
 
 	for idx, service := range services {
-		for _, deployment := range deploymentsInNamespaces[service.Svc.Namespace] {
+		for _, deployment := range deploymentsByNamespace[service.Svc.Namespace] {
 			if k8s.SelectorsMatch(deployment.Spec.Selector.MatchLabels, service.Svc.Spec.Selector) {
 				d := deployment
 				services[idx].Deployment = &d
@@ -231,7 +188,7 @@ func Services(c *kubernetes.Clientset, dc *dynamic.DynamicClient) ([]Service, er
 		}
 	}
 
-	pods, err := c.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	pods, err := c.CoreV1().Pods("").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +201,7 @@ func Services(c *kubernetes.Clientset, dc *dynamic.DynamicClient) ([]Service, er
 		}
 	}
 
-	i, err := c.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	i, err := c.NetworkingV1().Ingresses("").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +226,7 @@ func inventory(dc *dynamic.DynamicClient) ([]object.ObjMetadata, error) {
 
 	kustomizations, err := dc.Resource(kustomizationGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			return nil, fmt.Errorf("capacitor requires kustomize.toolkit.fluxcd.io/v1: %s", err)
@@ -305,19 +262,19 @@ func helmReleases(dc *dynamic.DynamicClient) ([]helmv2beta2.HelmRelease, error) 
 
 	helmReleases, err := dc.Resource(helmReleaseGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			// let's try the deprecated v2beta2
 			helmReleases, err = dc.Resource(helmReleaseGVRV2beta2).
 				Namespace("").
-				List(context.TODO(), metav1.ListOptions{})
+				List(timeoutCtx(), metav1.ListOptions{})
 			if err != nil {
 				if strings.Contains(err.Error(), "the server could not find the requested resource") {
 					// let's try the deprecated v2beta1
 					helmReleases, err = dc.Resource(helmReleaseGVRV2beta1).
 						Namespace("").
-						List(context.TODO(), metav1.ListOptions{})
+						List(timeoutCtx(), metav1.ListOptions{})
 					if err != nil {
 						if strings.Contains(err.Error(), "the server could not find the requested resource") {
 							// helm-controller is not mandatory, ignore error
@@ -349,43 +306,6 @@ func helmReleases(dc *dynamic.DynamicClient) ([]helmv2beta2.HelmRelease, error) 
 	return releases, nil
 }
 
-func helmStatusWithResources(
-	releases []*rspb.Release,
-	hr helmv2beta2.HelmRelease,
-) (kube.ResourceList, error) {
-	var release *rspb.Release
-	version := -1
-	for _, r := range releases {
-		if r.Namespace == hr.GetReleaseNamespace() && r.Name == hr.GetReleaseName() {
-			if r.Version > version {
-				release = r
-				version = r.Version
-			}
-		}
-	}
-	if release == nil {
-		return nil, fmt.Errorf("could not find helm release %s", hr.GetReleaseName())
-	}
-
-	actionConfig := action.Configuration{}
-	envSettings := cli.New()
-	envSettings.SetNamespace(hr.GetReleaseNamespace())
-	actionConfig.Init(envSettings.RESTClientGetter(), "", "", nil)
-	resources, err := actionConfig.KubeClient.Build(bytes.NewBufferString(release.Manifest), false)
-	if err != nil {
-		return nil, err
-	}
-
-	services := kube.ResourceList{}
-	for _, r := range resources {
-		gvk := r.Object.GetObjectKind().GroupVersionKind()
-		if gvk.Version == "v1" && gvk.Kind == "Service" {
-			services.Append(r)
-		}
-	}
-
-	return services, nil
-}
 
 func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, error) {
 	fluxState := &FluxState{
@@ -402,7 +322,7 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	gitRepositories, err := dc.Resource(gitRepositoryGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			return nil, fmt.Errorf("capacitor requires source.toolkit.fluxcd.io/v1: %s", err)
@@ -421,7 +341,7 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	ociRepositories, err := dc.Resource(ociRepositoryGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -437,10 +357,11 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	tfResources, err := dc.Resource(tfResourceGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
-		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			// tofu-controller is not mandatory, ignore error
+		if strings.Contains(err.Error(), "the server could not find the requested resource") ||
+			strings.Contains(err.Error(), "is forbidden") {
+			// tofu-controller is not mandatory; also skip gracefully if RBAC doesn't permit it
 			tfResources = &unstructured.UnstructuredList{}
 		} else {
 			return nil, err
@@ -458,13 +379,13 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	buckets, err := dc.Resource(bucketGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			// let's try the deprecated v1beta2
 			buckets, err = dc.Resource(bucketGVR1beta2).
 				Namespace("").
-				List(context.TODO(), metav1.ListOptions{})
+				List(timeoutCtx(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -484,7 +405,7 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	kustomizations, err := dc.Resource(kustomizationGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -506,13 +427,13 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	helmRepositories, err := dc.Resource(helmRepositoryGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			// let's try the deprecated v1beta2
 			helmRepositories, err = dc.Resource(helmRepositoryGVRv1beta2).
 				Namespace("").
-				List(context.TODO(), metav1.ListOptions{})
+				List(timeoutCtx(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -532,13 +453,13 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 
 	helmCharts, err := dc.Resource(helmChartGVR).
 		Namespace("").
-		List(context.TODO(), metav1.ListOptions{})
+		List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
 			// let's try the deprecated v1beta2
 			helmCharts, err = dc.Resource(helmChartGVRv1beta2).
 				Namespace("").
-				List(context.TODO(), metav1.ListOptions{})
+				List(timeoutCtx(), metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -566,7 +487,7 @@ func State(c *kubernetes.Clientset, dc *dynamic.DynamicClient) (*FluxState, erro
 }
 
 func Events(c *kubernetes.Clientset, dc *dynamic.DynamicClient) ([]Event, error) {
-	events, err := c.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
+	events, err := c.CoreV1().Events("").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -604,7 +525,7 @@ func Events(c *kubernetes.Clientset, dc *dynamic.DynamicClient) ([]Event, error)
 
 func fluxServicesWithDetails(c *kubernetes.Clientset) ([]Service, error) {
 	services := []Service{}
-	deployments, err := c.AppsV1().Deployments("flux-system").List(context.TODO(), metav1.ListOptions{})
+	deployments, err := c.AppsV1().Deployments("flux-system").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +537,7 @@ func fluxServicesWithDetails(c *kubernetes.Clientset) ([]Service, error) {
 		})
 	}
 
-	svc, err := c.CoreV1().Services("flux-system").List(context.TODO(), metav1.ListOptions{})
+	svc, err := c.CoreV1().Services("flux-system").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -629,7 +550,7 @@ func fluxServicesWithDetails(c *kubernetes.Clientset) ([]Service, error) {
 		}
 	}
 
-	pods, err := c.CoreV1().Pods("flux-system").List(context.TODO(), metav1.ListOptions{})
+	pods, err := c.CoreV1().Pods("flux-system").List(timeoutCtx(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

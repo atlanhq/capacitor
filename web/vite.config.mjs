@@ -18,6 +18,12 @@ export default defineConfig({
     proxy: {
       '/health': 'http://localhost:9000',
       '/api': 'http://localhost:9000',
+      // WebSocket proxy: log streaming uses ws://localhost:3000/ws/ in dev,
+      // which must be forwarded to the Go server's /ws/ WebSocket handler.
+      '/ws': {
+        target: 'ws://localhost:9000',
+        ws: true,
+      },
     },
   },
 })

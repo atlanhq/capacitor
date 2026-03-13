@@ -5,11 +5,11 @@ import { TimeLabel } from './TimeLabel'
 export function ReadyWidget(props) {
   const { resource, displayMessage, label } = props
 
-  if (resource.kind === "HelmRepository" && resource.spec.type === 'oci') {
+  if (resource.kind === "HelmRepository" && resource.spec?.type === 'oci') {
     return null
   }
 
-  const readyConditions = jp.query(resource.status, '$..conditions[?(@.type=="Ready")]');
+  const readyConditions = jp.query(resource.status || {}, '$..conditions[?(@.type=="Ready")]');
   const readyCondition = readyConditions.length === 1 ? readyConditions[0] : undefined
   const ready = readyCondition && readyConditions[0].status === "True"
 
@@ -22,11 +22,11 @@ export function ReadyWidget(props) {
   fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
   const stalled = fiveMinutesAgo > parsed
 
-  const reconcilingConditions = jp.query(resource.status, '$..conditions[?(@.type=="Reconciling")]');
+  const reconcilingConditions = jp.query(resource.status || {}, '$..conditions[?(@.type=="Reconciling")]');
   const reconcilingCondition = reconcilingConditions.length === 1 ? reconcilingConditions[0] : undefined
   const reconciling = reconcilingCondition && reconcilingCondition.status === "True"    
 
-  const fetchFailedConditions = jp.query(resource.status, '$..conditions[?(@.type=="FetchFailed")]');
+  const fetchFailedConditions = jp.query(resource.status || {}, '$..conditions[?(@.type=="FetchFailed")]');
   const fetchFailedCondition = fetchFailedConditions.length === 1 ? fetchFailedConditions[0] : undefined
   const fetchFailed = fetchFailedCondition && fetchFailedCondition.status === "True"  
 
@@ -43,7 +43,7 @@ export function ReadyWidget(props) {
     messageColor = ready ? "text-neutral-600 field" : (reconciling || dependencyNotReady) && !stalled ? "text-neutral-600" : "bg-orange-400"
   }
 
-  const suspended = resource.spec.suspend
+  const suspended = resource.spec?.suspend
 
   if (suspended) {
     color = "bg-yellow-400"

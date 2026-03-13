@@ -6,14 +6,14 @@ import { NavigationButton } from "./NavigationButton";
 export function TerraformResourceWidget(props) {
   const { tfRelease, withHistory, handleNavigationSelect } = props;
 
-  const version = tfRelease.status.history
+  const version = tfRelease.status?.history
     ? tfRelease.status.history[0]
     : undefined;
-  const appliedRevision = tfRelease.status.lastAppliedRevision;
-  // const lastAttemptedRevision = tfRelease.status.lastAttemptedRevision
+  const appliedRevision = tfRelease.status?.lastAppliedRevision;
+  // const lastAttemptedRevision = tfRelease.status?.lastAttemptedRevision
 
   const readyConditions = jp.query(
-    tfRelease.status,
+    tfRelease.status || {},
     '$..conditions[?(@.type=="Ready")]',
   );
   const readyCondition =
@@ -30,7 +30,7 @@ export function TerraformResourceWidget(props) {
   const stalled = fiveMinutesAgo > parsed;
 
   const reconcilingConditions = jp.query(
-    tfRelease.status,
+    tfRelease.status || {},
     '$..conditions[?(@.type=="Reconciling")]',
   );
   const reconcilingCondition =
@@ -38,16 +38,16 @@ export function TerraformResourceWidget(props) {
   const reconciling =
     reconcilingCondition && reconcilingConditions[0].status === "True";
 
-  const sourceRef = tfRelease.spec.sourceRef;
-  const namespace = sourceRef.namespace
+  const sourceRef = tfRelease.spec?.sourceRef;
+  const namespace = sourceRef?.namespace
     ? sourceRef.namespace
     : tfRelease.metadata.namespace;
   const navigationHandler = () =>
     handleNavigationSelect(
       "Sources",
       namespace,
-      sourceRef.name,
-      sourceRef.kind,
+      sourceRef?.name,
+      sourceRef?.kind,
     );
 
   return (
@@ -56,8 +56,8 @@ export function TerraformResourceWidget(props) {
         <span>
           <span>Attempting: </span>
           <span>
-            {tfRelease.spec.chart.spec.version}@
-            {tfRelease.spec.chart.spec.chart}
+            {tfRelease.spec?.chart?.spec?.version}@
+            {tfRelease.spec?.chart?.spec?.chart}
           </span>
         </span>
       )}
@@ -66,8 +66,8 @@ export function TerraformResourceWidget(props) {
           <span>Last Attempted: </span>
           {/* <span>{lastAttemptedRevision}@{version.chartName}</span> */}
           {/* <span>
-            {tfRelease.spec.chart.spec.version}@
-            {tfRelease.spec.chart.spec.chart}
+            {tfRelease.spec?.chart?.spec?.version}@
+            {tfRelease.spec?.chart?.spec?.chart}
           </span> */}
         </span>
       )}
@@ -81,7 +81,7 @@ export function TerraformResourceWidget(props) {
       </span>
       {withHistory && (
         <div className="pt-1 text-sm">
-          {tfRelease.status.history &&
+          {tfRelease.status?.history &&
             tfRelease.status.history.map((release) => {
               const current = release.status === "deployed";
 

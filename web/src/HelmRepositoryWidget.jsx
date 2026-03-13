@@ -3,7 +3,7 @@ export function HelmRepositoryWidget(props) {
 
   return (
     <>
-      {source.spec.url}
+      {source.spec?.url}
     </>
   )
 }

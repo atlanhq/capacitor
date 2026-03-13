@@ -62,7 +62,7 @@ export function Source(props) {
       <div className="grid grid-cols-1 text-right space-y-1">
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => {
-            if (source.spec.suspend) {
+            if (source.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
               confirm(`Are you sure you want to resume ${source.metadata.name}?`) && capacitorClient.resume(source.kind, source.metadata.namespace, source.metadata.name);
             } else {
@@ -71,7 +71,7 @@ export function Source(props) {
             }
           }}
         >
-          {source.spec.suspend ? "Resume" : "Suspend"}
+          {source.spec?.suspend ? "Resume" : "Suspend"}
         </button>
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => capacitorClient.reconcile(source.kind, source.metadata.namespace, source.metadata.name)}

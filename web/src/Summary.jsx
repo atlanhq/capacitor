@@ -9,25 +9,25 @@ export function Summary(props) {
 
   const totalCount = resources.length
   const readyCount = resources.filter(resource => {
-    if (resource.kind === "HelmRepository" && resource.spec.type === 'oci') {
+    if (resource.kind === "HelmRepository" && resource.spec?.type === 'oci') {
       return true
     }
-    const readyConditions = jp.query(resource.status, '$..conditions[?(@.type=="Ready")]');
+    const readyConditions = jp.query(resource.status || {}, '$..conditions[?(@.type=="Ready")]');
     const ready = readyConditions.length === 1 && readyConditions[0].status === "True"
     return ready
   }).length
   const dependencyNotReadyCount = resources.filter(resourece => {
-    const readyConditions = jp.query(resourece.status, '$..conditions[?(@.type=="Ready")]');
+    const readyConditions = jp.query(resourece.status || {}, '$..conditions[?(@.type=="Ready")]');
     const dependencyNotReady = readyConditions.length === 1 && readyConditions[0].reason === "DependencyNotReady"
     return dependencyNotReady
   }).length
   const reconcilingCount = resources.filter(resourece => {
-    const readyConditions = jp.query(resourece.status, '$..conditions[?(@.type=="Reconciling")]');
+    const readyConditions = jp.query(resourece.status || {}, '$..conditions[?(@.type=="Reconciling")]');
     const ready = readyConditions.length === 1 && readyConditions[0].status === "True"
     return ready
   }).length
   const stalledCount = resources.filter(resourece => {
-    const readyConditions = jp.query(resourece.status, '$..conditions[?(@.type=="Ready")]');
+    const readyConditions = jp.query(resourece.status || {}, '$..conditions[?(@.type=="Ready")]');
     const ready = readyConditions.length === 1 && readyConditions[0].status === "True"
     if (ready) {
       return false

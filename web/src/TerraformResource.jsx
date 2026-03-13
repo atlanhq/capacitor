@@ -60,7 +60,7 @@ export function TerraformResource(props) {
         <button
           className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => {
-            if (item.spec.suspend) {
+            if (item.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
               confirm(
                 `Are you sure you want to resume ${item.metadata.name}?`,
@@ -83,7 +83,7 @@ export function TerraformResource(props) {
             }
           }}
         >
-          {item.spec.suspend ? "Resume" : "Suspend"}
+          {item.spec?.suspend ? "Resume" : "Suspend"}
         </button>
         <button
           className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"

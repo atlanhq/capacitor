@@ -1,10 +1,7 @@
 import React, { useState } from "react";
-import { Kustomizations } from "./Kustomizations";
 import { HelmReleases } from "./HelmReleases";
-import { TerraformResources } from "./TerraformResources";
 import FluxEvents from "./FluxEvents";
 import { Sources } from "./Sources";
-import { CompactServices } from "./CompactServices";
 import { ErrorBoundary } from "react-error-boundary";
 import { fallbackRender } from "./FallbackRender"
 
@@ -28,23 +25,8 @@ export function ExpandedFooter(props) {
         <div className="w-56 px-4 border-r border-neutral-300">
           <SideBar
             navigation={[
+              { name: "Helm Releases", href: "#", count: fluxState.helmReleases.length },
               { name: "Sources", href: "#", count: sources.length },
-              {
-                name: "Kustomizations",
-                href: "#",
-                count: fluxState.kustomizations.length,
-              },
-              {
-                name: "Helm Releases",
-                href: "#",
-                count: fluxState.helmReleases.length,
-              },
-              {
-                name: "Terraform",
-                href: "#",
-                count: fluxState.tfResources.length,
-              },
-              { name: "Flux Runtime", href: "#", count: undefined },
               { name: "Flux Events", href: "#", count: undefined },
             ]}
             selectedMenu={handleNavigationSelect}
@@ -56,31 +38,11 @@ export function ExpandedFooter(props) {
       <div className="w-full px-4 overflow-x-hidden overflow-y-scroll">
         <div className="w-full max-w-7xl mx-auto flex-col h-full">
           <div className="pb-24 pt-2">
-            {selected === "Kustomizations" && (
-              <ErrorBoundary fallbackRender={fallbackRender}>
-              <Kustomizations
-                capacitorClient={client}
-                fluxState={fluxState}
-                targetReference={targetReference}
-                handleNavigationSelect={handleNavigationSelect}
-              />
-              </ErrorBoundary>
-            )}
             {selected === "Helm Releases" && (
               <ErrorBoundary fallbackRender={fallbackRender}>
               <HelmReleases
                 capacitorClient={client}
                 helmReleases={fluxState.helmReleases}
-                targetReference={targetReference}
-                handleNavigationSelect={handleNavigationSelect}
-              />
-              </ErrorBoundary>
-            )}
-            {selected === "Terraform" && (
-              <ErrorBoundary fallbackRender={fallbackRender}>
-              <TerraformResources
-                capacitorClient={client}
-                tfResources={fluxState.tfResources}
                 targetReference={targetReference}
                 handleNavigationSelect={handleNavigationSelect}
               />
@@ -93,15 +55,6 @@ export function ExpandedFooter(props) {
                 fluxState={fluxState}
                 targetReference={targetReference}
                 handleNavigationSelect={handleNavigationSelect}
-              />
-              </ErrorBoundary>
-            )}
-            {selected === "Flux Runtime" && (
-              <ErrorBoundary fallbackRender={fallbackRender}>
-              <CompactServices
-                capacitorClient={client}
-                store={store}
-                services={fluxState.fluxServices}
               />
               </ErrorBoundary>
             )}

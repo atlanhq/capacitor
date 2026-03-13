@@ -6,11 +6,11 @@ import { NavigationButton } from './NavigationButton'
 export function HelmRevisionWidget(props) {
   const { helmRelease, withHistory, handleNavigationSelect } = props
 
-  const version = helmRelease.status.history ? helmRelease.status.history[0] : undefined
-  const appliedRevision = helmRelease.status.lastAppliedRevision
-  // const lastAttemptedRevision = helmRelease.status.lastAttemptedRevision
+  const version = helmRelease.status?.history ? helmRelease.status.history[0] : undefined
+  const appliedRevision = helmRelease.status?.lastAppliedRevision
+  // const lastAttemptedRevision = helmRelease.status?.lastAttemptedRevision
 
-  const readyConditions = jp.query(helmRelease.status, '$..conditions[?(@.type=="Ready")]');
+  const readyConditions = jp.query(helmRelease.status || {}, '$..conditions[?(@.type=="Ready")]');
   const readyCondition = readyConditions.length === 1 ? readyConditions[0] : undefined
   const ready = readyConditions.length === 1 && readyConditions[0].status === "True"
 
@@ -20,28 +20,28 @@ export function HelmRevisionWidget(props) {
   fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
   const stalled = fiveMinutesAgo > parsed
 
-  const reconcilingConditions = jp.query(helmRelease.status, '$..conditions[?(@.type=="Reconciling")]');
+  const reconcilingConditions = jp.query(helmRelease.status || {}, '$..conditions[?(@.type=="Reconciling")]');
   const reconcilingCondition = reconcilingConditions.length === 1 ? reconcilingConditions[0] : undefined
   const reconciling = reconcilingCondition && reconcilingConditions[0].status === "True"
 
-  const sourceRef = helmRelease.spec.chart ? helmRelease.spec.chart.spec.sourceRef : helmRelease.spec.chartRef
+  const sourceRef = helmRelease.spec?.chart ? helmRelease.spec.chart.spec?.sourceRef : helmRelease.spec?.chartRef
 
-  const namespace = sourceRef.namespace ? sourceRef.namespace : helmRelease.metadata.namespace
-  const navigationHandler = () => handleNavigationSelect("Sources", namespace, sourceRef.name, sourceRef.kind)
+  const namespace = sourceRef?.namespace ? sourceRef.namespace : helmRelease.metadata.namespace
+  const navigationHandler = () => handleNavigationSelect("Sources", namespace, sourceRef?.name, sourceRef?.kind)
 
   return (
     <>
       {!ready && reconciling && !stalled &&
         <span>
           <span>Attempting: </span>
-          <span>{helmRelease.spec.chart.spec.version}@{helmRelease.spec.chart.spec.chart}</span>
+          <span>{helmRelease.spec?.chart?.spec?.version}@{helmRelease.spec?.chart?.spec?.chart}</span>
         </span>
       }
       {!ready && stalled &&
         <span className='bg-orange-400'>
           <span>Last Attempted: </span>
           {/* <span>{lastAttemptedRevision}@{version.chartName}</span> */}
-          <span>{helmRelease.spec.chart.spec.version}@{helmRelease.spec.chart.spec.chart}</span>
+          <span>{helmRelease.spec?.chart?.spec?.version}@{helmRelease.spec?.chart?.spec?.chart}</span>
         </span>
       }
       <span className={`block ${ready || reconciling ? '' : 'font-normal text-neutral-600'} field`}>
@@ -52,7 +52,7 @@ export function HelmRevisionWidget(props) {
       </span>
       {withHistory &&
         <div className='pt-1 text-sm'>
-          {helmRelease.status.history && helmRelease.status.history.map((release) => {
+          {helmRelease.status?.history && helmRelease.status.history.map((release) => {
             const current = release.status === "deployed"
 
             let statusLabel = ""

@@ -42,7 +42,7 @@ export function HelmRelease(props) {
       <div className="grid grid-cols-1 text-right space-y-1">
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => {
-            if (item.spec.suspend) {
+            if (item.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
               confirm(`Are you sure you want to resume ${item.metadata.name}?`) && capacitorClient.resume("helmrelease", item.metadata.namespace, item.metadata.name);
             } else {
@@ -51,7 +51,7 @@ export function HelmRelease(props) {
             }
           }}
         >
-          {item.spec.suspend ? "Resume" : "Suspend"}
+          {item.spec?.suspend ? "Resume" : "Suspend"}
         </button>
         <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
           onClick={() => capacitorClient.reconcile("helmrelease", item.metadata.namespace, item.metadata.name)}

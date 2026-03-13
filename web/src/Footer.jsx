@@ -49,22 +49,13 @@ const Footer = memo(function Footer(props) {
           {!expanded && (
             <>
               <div>
-                <Summary resources={sources} label="SOURCES" />
-              </div>
-              <div>
-                <Summary
-                  resources={fluxState.kustomizations}
-                  label="KUSTOMIZATIONS"
-                />
-              </div>
-              <div className="col-span-4">
                 <Summary
                   resources={fluxState.helmReleases}
                   label="HELM-RELEASES"
                 />
               </div>
-              <div className="col-span-4">
-                <Summary resources={fluxState.tfResources} label="TERRAFORM" />
+              <div>
+                <Summary resources={sources} label="SOURCES" />
               </div>
             </>
           )}
