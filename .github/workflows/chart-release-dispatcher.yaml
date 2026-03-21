@@ -22,19 +22,21 @@ jobs:
         id: extract_branch
         run: |
           branch="${{ github.event.workflow_run.head_branch }}"
-          # atlan/beta -> beta, atlan/main -> main
-          echo "branch=${branch#atlan/}" >> $GITHUB_OUTPUT
+          # atlan/beta -> beta, atlan/main -> main (for atlan repo)
+          echo "dispatch_branch=${branch#atlan/}" >> $GITHUB_OUTPUT
+          # keep original branch for checkout in this repo
+          echo "source_branch=${branch}" >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.ORG_PAT_GITHUB }}
-          ref: ${{ steps.extract_branch.outputs.branch }}
+          ref: ${{ steps.extract_branch.outputs.source_branch }}
           fetch-depth: 0
 
       - name: Get SHA of the branch
         id: get_sha
         run: |
-          branch_name=${{ steps.extract_branch.outputs.branch }}
+          branch_name=${{ steps.extract_branch.outputs.source_branch }}
           sha=$(git rev-parse "refs/heads/$branch_name")
           echo "GIT_SHA: $sha"
           echo "sha=${sha}" >> $GITHUB_OUTPUT
@@ -65,7 +67,7 @@ jobs:
             {
               "repo": {
                 "name": "${{ steps.extract_repo_name.outputs.repo_name }}",
-                "branch": "${{ steps.extract_branch.outputs.branch }}",
+                "branch": "${{ steps.extract_branch.outputs.dispatch_branch }}",
                 "pr_url": "${{ steps.get_pr_url_user.outputs.pr_url }}",
                 "pr_user": "${{ steps.get_pr_url_user.outputs.pr_user }}"
               }
