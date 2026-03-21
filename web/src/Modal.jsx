@@ -4,6 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 export function Modal(props) {
   const { stopHandler, navBar, children } = props;
   const logsEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const isUserNearBottom = useRef(true);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -13,8 +15,18 @@ export function Modal(props) {
   }, []);
 
   useEffect(() => {
-    logsEndRef.current.scrollIntoView();
+    if (isUserNearBottom.current) {
+      logsEndRef.current.scrollIntoView();
+    }
   }, [children]);
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const threshold = 50;
+    isUserNearBottom.current =
+      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  };
 
   return (
     <div
@@ -35,7 +47,7 @@ export function Modal(props) {
             </button>
           </div>
           <nav>{navBar}</nav>
-          <div className="h-full relative overflow-y-auto p-4 bg-slate-800 rounded-b-lg font-normal">
+          <div ref={scrollContainerRef} onScroll={handleScroll} className="h-full relative overflow-y-auto p-4 bg-slate-800 rounded-b-lg font-normal">
             {children}
             <p ref={logsEndRef} />
           </div>
