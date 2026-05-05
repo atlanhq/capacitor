@@ -172,6 +172,12 @@ func (c *Controller) processNextItem() bool {
 		return true
 	}
 
+	// Object is gone from the store (e.g. deleted via tombstone while an update was queued).
+	// Only delete events are meaningful without the object; silently drop create/update.
+	if obj == nil && informerEvent.(Event).eventType != "delete" {
+		return true
+	}
+
 	objectMeta := getObjectMetaData(obj)
 
 	// don't process events from before capacitor start
