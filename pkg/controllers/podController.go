@@ -26,10 +26,23 @@ func PodController(
 		func(informerEvent Event, objectMeta meta_v1.ObjectMeta, obj interface{}) error {
 			switch informerEvent.eventType {
 			case "create":
-				createdPod := obj.(*v1.Pod)
+				pod, ok := obj.(*v1.Pod)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						return nil
+					}
+					pod, ok = tombstone.Obj.(*v1.Pod)
+					if !ok || pod == nil {
+						return nil
+					}
+				}
+				if pod == nil {
+					return nil
+				}
 				podBytes, err := json.Marshal(streaming.Envelope{
 					Type:    streaming.POD_CREATED,
-					Payload: createdPod,
+					Payload: pod,
 				})
 				if err != nil {
 					logrus.Warnf("could not marshal event: %s", err)
@@ -37,7 +50,20 @@ func PodController(
 				}
 				clientHub.Broadcast <- podBytes
 			case "update":
-				pod := obj.(*v1.Pod)
+				pod, ok := obj.(*v1.Pod)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						return nil
+					}
+					pod, ok = tombstone.Obj.(*v1.Pod)
+					if !ok || pod == nil {
+						return nil
+					}
+				}
+				if pod == nil {
+					return nil
+				}
 				podBytes, err := json.Marshal(streaming.Envelope{
 					Type:    streaming.POD_UPDATED,
 					Payload: pod,
