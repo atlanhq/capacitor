@@ -23,14 +23,14 @@ func fluxStateHandler(w http.ResponseWriter, r *http.Request) {
 
 	fluxState, err := flux.State(client, dynamicClient)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return
 	}
 	fluxStateBytes, err := json.Marshal(fluxState)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return
@@ -46,14 +46,14 @@ func fluxEvents(w http.ResponseWriter, r *http.Request) {
 
 	events, err := flux.Events(client, dynamicClient)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return
 	}
 	fluxStateBytes, err := json.Marshal(events)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return
@@ -69,7 +69,7 @@ func servicesHandler(w http.ResponseWriter, r *http.Request) {
 
 	services, err := flux.Services(client, dynamicClient)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return
@@ -77,7 +77,7 @@ func servicesHandler(w http.ResponseWriter, r *http.Request) {
 
 	servicesBytes, err := json.Marshal(services)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		logrus.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{}"))
 		return

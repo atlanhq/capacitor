@@ -64,7 +64,7 @@ function ToastElement(props) {
             </NavigationButton>
             <div className="ml-auto">
               <button
-                className="rounded-md inline-flex focus:outline-none flex-shrink-0 justify-center items-center text-white/[.5] hover:text-white transition-all"
+                className="rounded-md inline-flex focus:outline-hidden shrink-0 justify-center items-center text-white/50 hover:text-white transition-all"
                 onClick={() => dismiss(event)}
               >
                 <span className="sr-only">Close</span>

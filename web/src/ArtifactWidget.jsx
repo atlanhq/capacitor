@@ -26,7 +26,7 @@ export function ArtifactWidget(props) {
         </span>
       </div>
       <span className="block field text-neutral-600">
-        <span className='font-mono bg-gray-100 px-1 rounded'>{branch}</span>
+        <span className='font-mono bg-gray-100 px-1 rounded-sm'>{branch}</span>
         <span className='px-1'>@</span>
         <a href={`https://${url}`} target="_blank" rel="noopener noreferrer">{url}</a>
       </span>

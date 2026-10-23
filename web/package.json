@@ -5,6 +5,8 @@
   "dependencies": {
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
@@ -15,7 +17,7 @@
     "react-dom": "^18.3.1",
     "react-error-boundary": "^4.0.13",
     "redux": "^5.0.1",
-    "tailwindcss": "^3.4.13",
+    "tailwindcss": "^4.3.3",
     "web-vitals": "^4.2.3"
   },
   "scripts": {
@@ -46,12 +48,15 @@
   "proxy": "http://127.0.0.1:9000",
   "devDependencies": {
     "@types/node": "^22.7.4",
-    "@vitejs/plugin-react": "^4.3.2",
-    "@vitejs/plugin-react-swc": "^3.7.1",
-    "@vitest/coverage-v8": "^2.1.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react-swc": "^3.9.0",
+    "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^9.11.1",
-    "vite": "^5.4.8",
+    "vite": "~6.4.4",
     "vite-plugin-eslint": "^1.8.1",
-    "vitest": "^2.1.1"
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "underscore": "1.13.8"
   }
 }
