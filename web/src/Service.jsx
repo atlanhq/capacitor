@@ -36,7 +36,7 @@ function Service(props) {
     <>
       <div className="w-full flex items-center justify-between space-x-6 bg-white pb-6 rounded-lg border border-neutral-300 shadow-lg">
         <div className="flex-1">
-          <h3 className="flex text-lg font-bold rounded p-4">
+          <h3 className="flex text-lg font-bold rounded-sm p-4">
             <span className="cursor-pointer">{service.svc.metadata.name}</span>
             <div className="flex items-center ml-auto">
               {deployment &&
@@ -411,7 +411,7 @@ function ConfigMap({ name, namespace, capacitorClient }) {
       </button>
       {showModal &&
         <Modal stopHandler={() => setShowModal(false)}>
-          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded'>
+          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded-sm'>
             {details ?? <SkeletonLoader />}
           </code>
         </Modal>
@@ -443,7 +443,7 @@ function Secret({ name, namespace, capacitorClient }) {
       </button>
       {showModal &&
         <Modal stopHandler={() => setShowModal(false)}>
-          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded'>
+          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded-sm'>
             {details ?? <SkeletonLoader />}
           </code>
         </Modal>
@@ -473,13 +473,13 @@ function CopyBtn({ title, textToCopy }) {
   return (
     <div>
       {copied &&
-        <span className="absolute select-none -right-1/4 -top-8 z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded-lg shadow-sm dark:bg-slate-700">
+        <span className="absolute select-none -right-1/4 -top-8 z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded-lg shadow-xs dark:bg-slate-700">
           Copied
         </span>
       }
       <button
         onClick={copyToClipboard}
-        className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-4 border border-neutral-300 rounded">
+        className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-4 border border-neutral-300 rounded-sm">
         {title}
       </button>
     </div>

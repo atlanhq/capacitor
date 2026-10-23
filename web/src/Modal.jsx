@@ -30,7 +30,7 @@ export function Modal(props) {
 
   return (
     <div
-      className="fixed flex inset-0 z-10 bg-gray-500 bg-opacity-75"
+      className="fixed flex inset-0 z-10 bg-gray-500/75"
       onClick={stopHandler}
     >
       <div className="flex self-center items-center justify-center w-full p-8 h-4/5">
@@ -39,7 +39,7 @@ export function Modal(props) {
         >
           <div className="absolute top-0 right-0 p-1.5">
             <button
-              className="rounded-md inline-flex text-gray-200 hover:text-gray-500 focus:outline-none"
+              className="rounded-md inline-flex text-gray-200 hover:text-gray-500 focus:outline-hidden"
               onClick={stopHandler}
             >
               <span className="sr-only">Close</span>
