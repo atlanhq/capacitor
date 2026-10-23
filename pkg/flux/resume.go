@@ -19,6 +19,7 @@ package flux
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -203,7 +204,7 @@ func (r resumeCommand) reconcile(kubeClient client.WithWatch, res resumable, nam
 	}
 
 	logrus.Infof("%s %s reconciliation completed", r.kind, res.asClientObject().GetName())
-	logrus.Infof(res.successMessage())
+	logrus.Info(res.successMessage())
 }
 
 // isObjectReady determines if an object is ready using the kstatus.Compute()
@@ -271,7 +272,7 @@ func isObjectReady(obj client.Object, statusType objectStatusType) (bool, error)
 	case kstatus.InProgressStatus:
 		return false, nil
 	default:
-		return false, fmt.Errorf(result.Message)
+		return false, errors.New(result.Message)
 	}
 }
 
