@@ -32,7 +32,7 @@ export function Kustomization(props) {
 
   return (
     <div
-      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow`}
+      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow-sm`}
       key={`${item.metadata.namespace}/${item.metadata.name}`}
     >
       <div className="col-span-2">
@@ -58,11 +58,11 @@ export function Kustomization(props) {
           </ErrorBoundary>
         </div>
         { source?.kind !== 'OCIRepository' &&
-        <span className='font-mono rounded text-neutral-600 bg-gray-100 px-1'>{item.spec?.path}</span>
+        <span className='font-mono rounded-sm text-neutral-600 bg-gray-100 px-1'>{item.spec?.path}</span>
         }
       </div>
       <div className="grid grid-cols-1 text-right space-y-1">
-        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() => {
             if (item.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
@@ -75,7 +75,7 @@ export function Kustomization(props) {
         >
           {item.spec?.suspend ? "Resume" : "Suspend"}
         </button>
-        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() => capacitorClient.reconcile("kustomization", item.metadata.namespace, item.metadata.name)}
         >
           Reconcile

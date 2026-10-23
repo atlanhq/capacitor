@@ -25,7 +25,7 @@ export function Source(props) {
   return (
     <div
       ref={ref}
-      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow`}
+      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow-sm`}
       key={`${source.kind}/${source.metadata.namespace}/${source.metadata.name}`}
     >
       <div className="col-span-2">
@@ -60,7 +60,7 @@ export function Source(props) {
         </ErrorBoundary>
       </div>
       <div className="grid grid-cols-1 text-right space-y-1">
-        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() => {
             if (source.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
@@ -73,7 +73,7 @@ export function Source(props) {
         >
           {source.spec?.suspend ? "Resume" : "Suspend"}
         </button>
-        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+        <button className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() => capacitorClient.reconcile(source.kind, source.metadata.namespace, source.metadata.name)}
         >
           Reconcile

@@ -30,7 +30,7 @@ export function Describe(props) {
               describePod={describePod}
             />}
         >
-          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded'>
+          <code className='flex whitespace-pre items-center font-mono text-xs p-2 text-yellow-100 rounded-sm'>
             {details ?? <SkeletonLoader />}
           </code>
         </Modal>
@@ -39,7 +39,7 @@ export function Describe(props) {
         setShowModal(true);
         describeDeployment()
       }}
-        className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-4 border border-neutral-300 rounded">
+        className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-4 border border-neutral-300 rounded-sm">
         Describe
       </button>
     </>

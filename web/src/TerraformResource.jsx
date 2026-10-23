@@ -23,7 +23,7 @@ export function TerraformResource(props) {
   return (
     <div
       ref={ref}
-      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow`}
+      className={`${highlight ? "ring-2 ring-indigo-600 ring-offset-2" : ""} rounded-md border border-neutral-300 p-4 grid grid-cols-12 gap-x-4 bg-white shadow-sm`}
       key={`hr-${item.metadata.namespace}/${item.metadata.name}`}
     >
       <ErrorBoundary fallbackRender={fallbackRender}>
@@ -58,7 +58,7 @@ export function TerraformResource(props) {
       </div>
       <div className="grid grid-cols-1 text-right space-y-1">
         <button
-          className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+          className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() => {
             if (item.spec?.suspend) {
               // eslint-disable-next-line no-restricted-globals
@@ -86,7 +86,7 @@ export function TerraformResource(props) {
           {item.spec?.suspend ? "Resume" : "Suspend"}
         </button>
         <button
-          className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded"
+          className="bg-transparent hover:bg-neutral-100 font-medium text-sm text-neutral-700 py-1 px-2 border border-neutral-300 rounded-sm"
           onClick={() =>
             capacitorClient.reconcile(
               "Terraform",

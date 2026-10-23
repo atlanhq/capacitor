@@ -172,7 +172,7 @@ func (r *reconcileCommand) Run(config *rest.Config, namespace, name string) {
 		logrus.Errorf("%s reconciliation failed: %s", r.kind, readyCond.Message)
 		return
 	}
-	logrus.Infof(r.object.successMessage())
+	logrus.Info(r.object.successMessage())
 }
 
 // oldConditions represents the deprecated API which is sunsetting.
